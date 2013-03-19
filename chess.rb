@@ -4,10 +4,12 @@ end
 
 
 class Board
-  attr_accessor :black, :white
+  attr_accessor :black, :white, :black_taken, :white_taken
   def initialize
     @black = build_all_black_pieces
     @white = build_all_white_pieces
+    @black_taken = []
+    @white_taken = []
   end
 
   def display
@@ -23,10 +25,8 @@ class Board
       x,y = piece.x, piece.y
       display_array[y][x] = piece.getName
     end
-    p display_array
+    display_array
   end
-
-
 
   def build_all_black_pieces
     black = []
@@ -58,17 +58,66 @@ class Board
     white
   end
 
+  #start [y,x]
+  #end   [y,x]
+  def move_piece(start,final)
+
+    on_board(start,final)
+    piece = find_piece(start)
+
+    piece.move(final) if piece.valid_move?(start,final)
+
+  end
+
+  def check_final_pos(final,color)
+    piece = find_piece(final)
+    return true if piece.nil?
+    raise "Can't ,over on top of your own" if piece.color == color
+    true
+  end
+
+  def remove_from_board(piece)
+
+  end
+
+  def on_board(start,final)
+    if bounds_check(start)
+      raise 'Starting position outside board'
+    elsif bounds_check(final)
+      raise 'Finish position outside board'
+    end
+  end
+
+  def bounds_check(pos)
+    return false if 0 <= pos[0] && pos[0] <= 7
+    return false if 0 <= pos[1] && pos[1] <= 7
+    true
+  end
+
+  def find_piece(pos)
+    (black+white).each do |piece|
+      x,y = piece.x, piece.y
+      if [y,x] == pos
+        return piece
+      end
+    end
+    nil
+  end
+
 end
 
 class Piece
 
   attr_accessor :x, :y
   attr_reader :color
-
   def initialize(color,y,x)
     @color = color
     @x = x
     @y = y
+  end
+
+  def move(pos)
+    self.x,self.y = pos[1],pos[0]
   end
 
   def getName
@@ -91,21 +140,74 @@ end
 
 class King < Piece
 
+  #def initialize(color,y,x)
+  #  super(color,y,x)
+  #  self.:valid_move = [[1,0],[0,1],[1,1],[-1,0],[0,-1],[-1,-1],[-1,1],[1,-1]]
+  #end
+  def valid_move?(start,finish)
+    if (start[0] - finish[0]).abs < 2 &&  (start[1] - finish[1]).abs < 2
+      raise 'Invalid Move for king'
+    end
+    return true
+  end
 end
 
 class Queen < Piece
+  def valid_move?(start,finish)
+    if ((start[0] - finish[0]).abs == (start[1] - finish[1]).abs ||
+        (start[0] - finish[0]).abs == 0 ||
+        (start[1] - finish[1]).abs == 0)
+      return true
+    end
+    raise 'invalid move for queen'
+  end
 end
 
 class Bishop < Piece
+  def valid_move?(start,finish)
+    if ((start[0] - finish[0]).abs == (start[1] - finish[1]).abs)
+      return true
+    end
+    raise 'Invalid move for #{self.class}'
+  end
 end
 
 class Knight < Piece
+  def valid_move?(start,finish)
+    if ((start[0] - finish[0]).abs == 1 && (start[1] - finish[1]).abs == 2) ||
+      ((start[0] - finish[0]).abs == 2 && (start[1] - finish[1]).abs == 1)
+      return true
+    end
+    raise "Invalid move for #{self.class}"
+  end
 end
 
 class Rook < Piece
+  def valid_move?(start,finish)
+    if (start[0] - finish[0]).abs == 0 || (start[1] - finish[1]).abs == 0
+      return true
+    else
+      raise "Invalid move for #{self.class}"
+    end
+  end
 end
 
 class Pawn < Piece
+  def valid_move?(start,finish)
+    if self.color == :B
+      if (finish[0] - start[0]) == 1 && (finish[1] == start[1])
+        return true
+      else
+        raise "Invalid move for #{self.class}"
+      end
+    elsif self.color == :W
+      if (finish[0] - start[0]) == -1 && (finish[1] == start[1])
+        return true
+      else
+        raise "Invalid move for #{self.class}"
+      end
+    end
+  end
 end
 
 class Blank

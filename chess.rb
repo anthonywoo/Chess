@@ -65,19 +65,28 @@ class Board
     on_board(start,final)
     piece = find_piece(start)
 
-    piece.move(final) if piece.valid_move?(start,final)
-
+    if piece.valid_move?(start,final)
+      check_and_clear_final_pos(final, piece.color)
+      piece.move(final)
+    end
   end
 
-  def check_final_pos(final,color)
+  def check_and_clear_final_pos(final,color)
     piece = find_piece(final)
     return true if piece.nil?
     raise "Can't ,over on top of your own" if piece.color == color
+    remove_from_board(piece)
     true
   end
 
   def remove_from_board(piece)
-
+    if piece.color == :B
+      self.white_taken << piece
+      self.black.delete(piece)
+    else
+      self.black_taken << piece
+      self.white.delete(piece)
+    end
   end
 
   def on_board(start,final)

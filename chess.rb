@@ -3,6 +3,12 @@ class Game
 
 end
 
+class Player
+  attr_accessor :board
+  def initialize(board)
+    @board = board
+  end
+end
 
 class Board
   attr_accessor :black, :white, :black_taken, :white_taken
@@ -35,6 +41,15 @@ class Board
 
     on_board(start,final)
     piece = find_piece(start)
+
+    piece.move(final)
+
+    if king_in_check?(piece.color)
+      piece.move(start)
+      raise "You King is in Check"
+    end
+    piece.move(start)
+
     raise 'Pawn blocked' if pawn_blocked(start,final)
     check_path(build_path(start,final))
 
@@ -42,9 +57,38 @@ class Board
       check_and_clear_final_pos(final, piece.color)
       piece.move(final)
     end
+
   end
 
   private
+
+  def king_in_check?(color)
+    king = find_king(color)
+    all_opposite_pieces(color).each do |piece|
+      if piece.valid_move([piece.y, piece.x], [king.y, king.x])
+        return true
+      end
+    end
+    return false
+  end
+
+  def all_opposite_pieces(color)
+    if color == :B
+      white
+    else
+      black
+    end
+  end
+
+  def find_king(color)
+    king = nil
+    (black+white).each do |piece|
+      if piece.class == King && piece.color == color
+        return piece
+      end
+    end
+  end
+
 
   def pawn_blocked(start,finish)
     pawn = find_piece(start)
@@ -70,6 +114,8 @@ class Board
      return false
 
   end
+
+
 
 
 

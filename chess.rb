@@ -28,6 +28,50 @@ class Board
     display_array
   end
 
+  #start [y,x]
+  #end   [y,x]
+  def move_piece(start,final)
+
+    on_board(start,final)
+    piece = find_piece(start)
+    raise 'Pawn blocked' if pawn_blocked(start,final)
+    check_path(build_path(start,final))
+
+    if valid_pawn_attack(start,final) || piece.valid_move?(start,final)
+      check_and_clear_final_pos(final, piece.color)
+      piece.move(final)
+    end
+  end
+
+  private
+
+  def pawn_blocked(start,finish)
+    pawn = find_piece(start)
+    return false unless pawn.class == Pawn
+    enemy = find_piece(finish);
+    return false if enemy.nil?
+    if (start[0]-finish[0]).abs == 1 && start[1] == finish[1]
+      return true
+    end
+    return false
+  end
+
+  def valid_pawn_attack(start,finish)
+    pawn = find_piece(start)
+    enemy = find_piece(finish);
+    return false unless pawn.class == Pawn
+    return false unless enemy != nil && enemy.color != pawn.color
+    if (start[0] - finish[0]).abs == 1 &&
+       (start[1] - finish[1]).abs == 1
+
+       return true
+     end
+     return false
+
+  end
+
+
+
   def build_all_black_pieces
     black = []
     black << Rook.new(:B,0,0)
@@ -58,23 +102,52 @@ class Board
     white
   end
 
-  #start [y,x]
-  #end   [y,x]
-  def move_piece(start,final)
 
-    on_board(start,final)
-    piece = find_piece(start)
-
-    if piece.valid_move?(start,final)
-      check_and_clear_final_pos(final, piece.color)
-      piece.move(final)
+  def check_path(path)
+    return if path.nil?
+    path.each do |pos|
+      raise "Obstacle in the way" if find_piece(pos)
     end
+  end
+
+  def build_path(start,final)
+    piece = find_piece(start)
+    return if piece.class == Knight
+    path = []
+    #is diag, horiz, vertical
+    if start[0] == final[0] #horiz
+      custom_range(start[1], final[1]).each {|x| path << [start[0],x]}
+    elsif start[1] == final[1] #vertical
+      custom_range(start[0], final[0]).each {|y| path << [y,start[1]]}
+    else #diag
+      x_array = []
+      y_array = []
+      custom_range(start[0], final[0]).each {|x| x_array << x}
+      custom_range(start[1], final[1]).each {|y| y_array << y}
+      y_array.each_with_index do |y, i|
+        path << [y, x_array[i]]
+      end
+    end
+
+     path.delete(start) unless path.nil?
+     path.delete(final) unless path.nil?
+     path
+  end
+
+  def custom_range(start, final)
+    a = start < final ? start : final
+    b = start < final ? final : start
+    result = []
+    (a..b).each do |i|
+      result << i
+    end
+    result
   end
 
   def check_and_clear_final_pos(final,color)
     piece = find_piece(final)
     return true if piece.nil?
-    raise "Can't ,over on top of your own" if piece.color == color
+    raise "Can't move on top of your own" if piece.color == color
     remove_from_board(piece)
     true
   end
@@ -203,14 +276,16 @@ end
 
 class Pawn < Piece
   def valid_move?(start,finish)
+    distance = start[0]==1 || start[0] == 6 ? 2 : 1
+
     if self.color == :B
-      if (finish[0] - start[0]) == 1 && (finish[1] == start[1])
+      if (finish[0] - start[0]) == distance && (finish[1] == start[1])
         return true
       else
         raise "Invalid move for #{self.class}"
       end
     elsif self.color == :W
-      if (finish[0] - start[0]) == -1 && (finish[1] == start[1])
+      if (finish[0] - start[0]) == -1 * distance && (finish[1] == start[1])
         return true
       else
         raise "Invalid move for #{self.class}"

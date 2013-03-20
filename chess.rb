@@ -1,5 +1,5 @@
-require './pieces.rb'
-require 'pry'
+require './piece_header.rb'
+require 'colorize'
 class Game
   def initialize
     @board = Board.new
@@ -58,10 +58,21 @@ class Player
     @color = color
   end
 
+  #a8 = [0,0]
+  def translate_chess_notation(notation)
+    chess_coords = notation.split('')
+    y =  (chess_coords[1].to_i - 8).abs
+    x =   chess_coords[0].ord - 97
+    [y,x]
+  end
+
   def take_move
-    puts "enter y1 x1 y2 x2"
+    puts "enter a8 e6"
     user_input = gets.chomp
-    coords = user_input.split(" ")
+    chess_coords = user_input.split(" ")
+    start = translate_chess_notation(chess_coords[0])
+    final = translate_chess_notation(chess_coords[1])
+    coords = start + final
 
     coords.map! {|str| str.to_i}
     raise "Not yo peace" unless @board.is_my_piece?([coords[0],coords[1]], self.color)
@@ -83,26 +94,39 @@ class Board
     system("clear")
     display_array = []
     (0..7).each do |i|
-      display_array << ["**","**","**","**","**","**","**","**"]
+      display_array << []
+      (0..7).each do |j|
+        display_array[i][j] = "  ".colorize(:background=>black_white(i,j))
+      end
     end
     self.black.each do |piece|
       x,y = piece.x, piece.y
-      display_array[y][x] = piece.getName
+      display_array[y][x] = piece.getName.colorize(:color=>:black, :background=>black_white(x,y))
     end
     self.white.each do |piece|
       x,y = piece.x, piece.y
-      display_array[y][x] = piece.getName
+      display_array[y][x] = piece.getName.colorize(:color=>:white, :background=>black_white(x,y))
     end
     pretty_print(display_array)
   end
 
+  def black_white(x,y)
+    if (x+y).even?
+      return :yellow
+    else
+      return :blue
+    end
+  end
+
+
   def pretty_print(chess_board)
 
     puts "________________________________________________________________"
-    chess_board.each do |row|
-      print "\n"
+    print " a b c d e f g h"
+    chess_board.each_with_index do |row,index|
+      print "\n#{8-index}"
       row.each do |cell|
-        print" #{cell} "
+        print"#{cell}"
       end
     end
     puts "\n________________________________________________________________"
@@ -114,9 +138,7 @@ class Board
     find_piece(pos).color == color
   end
 
-  def game_over?(color)
-    return false unless king_in_check?(color) #am i currently in check?
-    pieces = color == :B ? black : white
+  def get_all_coordinates(pieces)
     all_coords = []
     (0..7).each do |i|
       (0..7).each do |j|
@@ -126,16 +148,21 @@ class Board
     pieces.each do |piece|
       all_coords.delete([piece.y, piece.x])
     end
+    all_coords
+  end
+
+  def game_over?(color)
+    return false unless king_in_check?(color) #am i currently in check?
+    pieces = color == :B ? black : white
+
+    all_coords = get_all_coordinates(pieces)
+
     escape = true
     pieces.each do |piece| #checkmate
       start = [piece.y, piece.x]
       all_coords.each do |final|
         if piece.can_move?(final, self)
-          taken_piece = check_and_clear_final_pos(final,color)
-          piece.move(final)
-          escape = false unless king_in_check?(color)
-          piece.move(start)
-          undo_taken_piece(taken_piece) if taken_piece
+          escape = check_if_king_in_check(piece, start, final)
         end
       end
       break unless escape
@@ -146,50 +173,34 @@ class Board
 
   def undo_taken_piece(piece)
     if piece.color == :B
-      taken_piece = self.black_taken.pop
-      self.black << taken_piece
+      self.black << self.black_taken.pop
     else
-      taken_piece = self.white_taken.pop
-      self.white << taken_piece
+      self.white << self.white_taken.pop
     end
   end
 
   def check_if_king_in_check(piece, start, final)
-    #escape = true
     taken_piece = check_and_clear_final_pos(final,piece.color)
     piece.move(final)
     escape = king_in_check?(piece.color)
     piece.move(start)
     undo_taken_piece(taken_piece) if taken_piece
-
-    # if king_in_check?(piece.color)
-#       piece.move(start)
-#       return true
-#       #raise "Your King is in Check"
-#     end
-#     piece.move(start)
-#     false
     return escape
   end
 
 
 
   def move_piece(start,final)
-
     move_on_board?(start,final)
     piece = find_piece(start)
     raise "You did not select a piece" unless piece
     raise "King is in Check" if check_if_king_in_check(piece, start, final)
 
-    # raise 'Pawn blocked' if pawn_blocked(start,final)
-    # raise "Blocked" unless check_path(build_path(start,final))
-
-    #if valid_pawn_attack(start,final) || piece.valid_move?(start,final)
     if piece.can_move?(final, self)
       check_and_clear_final_pos(final, piece.color)
       piece.move(final)
     else
-      raise "Ilegal move, man"
+      raise "Illegal move, man"
     end
   end
 
@@ -198,21 +209,6 @@ class Board
     king = find_king(color)
     king.in_check?(self)
   end
-
-  # def king_in_check?(color)
- #    king = find_king(color)
- #    all_opposite_pieces(color).each do |piece|
- #      begin
- #        final = [king.y, king.x]
- #        if piece.can_move?(final, self)
- #          return true
- #        end
- #      rescue Exception => e
- #        puts e
- #      end
- #    end
- #    return false
- #  end
 
   def all_opposite_pieces(color)
     if color == :B
@@ -297,10 +293,7 @@ class Board
   def find_piece(pos)
     (black+white).each do |piece|
       unless piece.nil?
-        x,y = piece.x, piece.y
-        if [y,x] == pos
-          return piece
-        end
+        return piece if [piece.y,piece.x] == pos
       end
     end
     nil

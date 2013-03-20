@@ -47,6 +47,7 @@ end
 
 class Queen < Piece
   def valid_move?(start,finish)
+    #this conditional statemente is really long you should make a helper for this 
     if ((start[0] - finish[0]).abs == (start[1] - finish[1]).abs ||
         (start[0] - finish[0]).abs == 0 ||
         (start[1] - finish[1]).abs == 0)
@@ -69,6 +70,7 @@ end
 
 class Knight < Piece
   def valid_move?(start,finish)
+#this conidition statement is very long you should consider breaking it up
     if ((start[0] - finish[0]).abs == 1 && (start[1] - finish[1]).abs == 2) ||
       ((start[0] - finish[0]).abs == 2 && (start[1] - finish[1]).abs == 1)
       return true

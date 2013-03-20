@@ -23,6 +23,7 @@ class Game
       puts "You Lose!"
       exit
     elsif @board.king_in_check?(@turn)
+    #Bad grammer in messagge you should consider refrasing
       puts "Yo king be in check"
     end
     until succuss
@@ -98,7 +99,7 @@ class Board
 
   #start [y,x]
   #end   [y,x]
-
+#You might what to consider refactoring this code
   def game_over?(color)
     #binding.pry
     return false unless king_in_check?(color)
@@ -232,7 +233,7 @@ class Board
     black << Rook.new(:B,0,0)
     black << Knight.new(:B,0,1)
     black << Bishop.new(:B,0,2)
-    black << Queen.new(:B,0,3)
+    black << Queen.new(:B,0,3):
     black << King.new(:B,0,4)
     black << Bishop.new(:B,0,5)
     black << Knight.new(:B,0,6)
@@ -267,6 +268,7 @@ class Board
     return true
   end
 
+#this function is pretty long you should consider refactoriing it
   def build_path(start,final)
     piece = find_piece(start)
     return if piece.class == Knight

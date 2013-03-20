@@ -54,6 +54,8 @@ class Player
     puts "enter y1 x1 y2 x2"
     user_input = gets.chomp
     coords = user_input.split(" ")
+    exit if coords[0] == "q"
+      
     coords.map! {|str| str.to_i}
     @board.move_piece([coords[0],coords[1]],[coords[2],coords[3]])
   end
@@ -86,7 +88,7 @@ class Board
 
   def pretty_print(chess_board)
 
-    puts "________________________________________________________________"
+    #puts "________________________________________________________________"
     chess_board.each do |row|
       print "\n"
       row.each do |cell|
@@ -108,18 +110,17 @@ class Board
         all_coords << [i,j]
       end
     end
-    #binding.pry
     pieces.each do |piece|
       all_coords.delete([piece.y, piece.x])
     end
-    #binding.pry
     pieces.each do |piece| #checkmate
       start = [piece.y, piece.x]
       all_coords.each do |final|
-        if valid_pawn_attack(start,final) || piece.valid_move?(start,final)
+        if piece.can_move?(final, self)
           taken_piece = check_and_clear_final_pos(final,color)
           piece.move(final)
           return false unless king_in_check?(color)
+          piece.move(start)
           undo_taken_piece(taken_piece) if taken_piece
         end
       end
@@ -139,23 +140,28 @@ class Board
     end
   end
 
-  def move_piece(start,final)
-
-    on_board(start,final)
-    piece = find_piece(start)
-
+  def check_if_king_in_check(piece, start, final)
     piece.move(final)
-
     if king_in_check?(piece.color)
       piece.move(start)
       raise "Your King is in Check"
     end
     piece.move(start)
+  end
 
-    raise 'Pawn blocked' if pawn_blocked(start,final)
-    raise "Blocked" unless check_path(build_path(start,final))
+  def move_piece(start,final)
 
-    if valid_pawn_attack(start,final) || piece.valid_move?(start,final)
+    move_on_board?(start,final)
+    piece = find_piece(start)
+    raise "You did not select a piece" unless piece
+
+    check_if_king_in_check(piece, start, final)
+
+    # raise 'Pawn blocked' if pawn_blocked(start,final)
+    # raise "Blocked" unless check_path(build_path(start,final))
+
+    #if valid_pawn_attack(start,final) || piece.valid_move?(start,final)
+    if piece.can_move?(final, self)
       check_and_clear_final_pos(final, piece.color)
       piece.move(final)
     end
@@ -168,10 +174,8 @@ class Board
     king = find_king(color)
     all_opposite_pieces(color).each do |piece|
       begin
-        start = [piece.y, piece.x]
         final = [king.y, king.x]
-        if piece.valid_move?(start, final) &&
-          check_path(build_path(start,final))
+        if piece.can_move?(final, self)
           return true
         end
       rescue Exception => e
@@ -253,57 +257,6 @@ class Board
     white
   end
 
-
-  def check_path(path)
-    return if path.nil?
-    path.each do |pos|
-      return false if find_piece(pos) #found obstacle in the way
-    end
-    return true
-  end
-
-  def build_path(start,final)
-    piece = find_piece(start)
-    return if piece.class == Knight
-    path = []
-    #is diag, horiz, vertical
-    if start[0] == final[0] #horiz
-      custom_range(start[1], final[1]).each {|x| path << [start[0],x]}
-    elsif start[1] == final[1] #vertical
-      custom_range(start[0], final[0]).each {|y| path << [y,start[1]]}
-    else #diag
-      x_array = []
-      y_array = []
-      # for x in start[1]..final[1] ###doesn't work for reverse range
-#         x_array << x
-#       end
-#       for y in start[0]..final[0]
-#         y_array << y
-#       end
-      y_array = custom_range(start[0], final[0])
-      x_array = custom_range(start[1], final[1])
-      #custom_range(start[1], final[1]).each {|x| x_array << x}
-      y_array.each_with_index do |y, i|
-        path << [y, x_array[i]]
-      end
-    end
-
-     path.delete(start) unless path.nil?
-     path.delete(final) unless path.nil?
-     path
-  end
-
-  def custom_range(start, final)
-    a = start < final ? start : final
-    b = start < final ? final : start
-    result = []
-    (a..b).each do |i|
-      result << i
-    end
-    result = result.reverse if final < start
-    result
-  end
-
   def check_and_clear_final_pos(final,color)
     piece = find_piece(final)
     return nil if piece.nil?
@@ -313,20 +266,22 @@ class Board
 
   def remove_from_board(piece)
     if piece.color == :B
-      self.white_taken << piece
+      self.black_taken << piece
       self.black.delete(piece)
     else
-      self.black_taken << piece
+      self.white_taken << piece
       self.white.delete(piece)
     end
+    piece
   end
 
-  def on_board(start,final)
+  def move_on_board?(start,final)
     if bounds_check(start)
       raise 'Starting position outside board'
     elsif bounds_check(final)
       raise 'Finish position outside board'
     end
+    true
   end
 
   def bounds_check(pos)

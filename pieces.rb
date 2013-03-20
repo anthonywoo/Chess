@@ -15,17 +15,17 @@ class Piece
   def getName
     case self
     when King
-      return "#{color}K"
+      return self.color == :W ? "\u2654 " : "\u265A "
     when Queen
-      return "#{color}Q"
+      return self.color == :W ? "\u2655 " : "\u265B "
     when Bishop
-      return "#{color}B"
+      return self.color == :W ? "\u2657 " : "\u265D "
     when Knight
-      return "#{color}H"
+      return self.color == :W ? "\u2658 " : "\u265E "
     when Rook
-      return "#{color}R"
+      return self.color == :W ? "\u2656 " : "\u265C "
     when Pawn
-      return "#{color}P"
+      return self.color == :W ? "\u2659 " : "\u265F "
     end
   end
 

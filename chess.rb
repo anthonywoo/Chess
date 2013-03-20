@@ -80,7 +80,7 @@ class Board
   end
 
   def display
-    #system("clear")
+    system("clear")
     display_array = []
     (0..7).each do |i|
       display_array << ["**","**","**","**","**","**","**","**"]
@@ -179,9 +179,6 @@ class Board
     move_on_board?(start,final)
     piece = find_piece(start)
     raise "You did not select a piece" unless piece
-
-
-
     raise "King is in Check" if check_if_king_in_check(piece, start, final)
 
     # raise 'Pawn blocked' if pawn_blocked(start,final)
@@ -194,8 +191,6 @@ class Board
     else
       raise "Ilegal move, man"
     end
-
-
   end
 
   #private

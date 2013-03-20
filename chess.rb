@@ -3,8 +3,8 @@ require 'pry'
 class Game
   def initialize
     @board = Board.new
-    @player1 = Player.new(@board) #W
-    @player2 = Player.new(@board) #B
+    @player1 = Player.new(@board, :W) #W
+    @player2 = Player.new(@board, :B) #B
   end
   def start_game
 
@@ -26,13 +26,16 @@ class Game
       puts "Yo king be in check"
     end
     until succuss
+      @board.display
+      puts "Turn for #{@turn}"
       begin
         if @turn == :W
           @player1.take_move
         else
           @player2.take_move
         end
-        succuss = true
+        succuss = true unless @board.king_in_check?(@turn)
+        puts ""
       rescue Exception => e
         puts e.message
         puts "Try again!"
@@ -42,15 +45,17 @@ class Game
       puts "CHECK!"
     end
     next_turn
+    puts "I Ran!"
     take_turn
   end
 
 end
 
 class Player
-  attr_accessor :board
-  def initialize(board)
+  attr_accessor :board, :color
+  def initialize(board, color)
     @board = board
+    @color = color
   end
 
   def take_move
@@ -59,8 +64,10 @@ class Player
     coords = user_input.split(" ")
 
     coords.map! {|str| str.to_i}
+    raise "Not yo peace" unless @board.is_my_piece?([coords[0],coords[1]], self.color)
     @board.move_piece([coords[0],coords[1]],[coords[2],coords[3]])
   end
+
 end
 
 class Board
@@ -73,6 +80,7 @@ class Board
   end
 
   def display
+    #system("clear")
     display_array = []
     (0..7).each do |i|
       display_array << ["**","**","**","**","**","**","**","**"]
@@ -90,7 +98,7 @@ class Board
 
   def pretty_print(chess_board)
 
-    #puts "________________________________________________________________"
+    puts "________________________________________________________________"
     chess_board.each do |row|
       print "\n"
       row.each do |cell|
@@ -102,6 +110,9 @@ class Board
 
   #start [y,x]
   #end   [y,x]
+  def is_my_piece?(pos, color)
+    find_piece(pos).color == color
+  end
 
   def game_over?(color)
     return false unless king_in_check?(color) #am i currently in check?
@@ -115,22 +126,23 @@ class Board
     pieces.each do |piece|
       all_coords.delete([piece.y, piece.x])
     end
+    escape = true
     pieces.each do |piece| #checkmate
       start = [piece.y, piece.x]
       all_coords.each do |final|
         if piece.can_move?(final, self)
           taken_piece = check_and_clear_final_pos(final,color)
           piece.move(final)
-          return false unless king_in_check?(color)
+          escape = false unless king_in_check?(color)
           piece.move(start)
           undo_taken_piece(taken_piece) if taken_piece
         end
       end
+      break unless escape
     end
 
-    return true
+    return escape
   end
-
 
   def undo_taken_piece(piece)
     if piece.color == :B
@@ -143,14 +155,24 @@ class Board
   end
 
   def check_if_king_in_check(piece, start, final)
+    #escape = true
+    taken_piece = check_and_clear_final_pos(final,piece.color)
     piece.move(final)
-
-    if king_in_check?(piece.color)
-      piece.move(start)
-      raise "Your King is in Check"
-    end
+    escape = king_in_check?(piece.color)
     piece.move(start)
+    undo_taken_piece(taken_piece) if taken_piece
+
+    # if king_in_check?(piece.color)
+#       piece.move(start)
+#       return true
+#       #raise "Your King is in Check"
+#     end
+#     piece.move(start)
+#     false
+    return escape
   end
+
+
 
   def move_piece(start,final)
 
@@ -158,7 +180,9 @@ class Board
     piece = find_piece(start)
     raise "You did not select a piece" unless piece
 
-    check_if_king_in_check(piece, start, final)
+
+
+    raise "King is in Check" if check_if_king_in_check(piece, start, final)
 
     # raise 'Pawn blocked' if pawn_blocked(start,final)
     # raise "Blocked" unless check_path(build_path(start,final))
@@ -167,7 +191,10 @@ class Board
     if piece.can_move?(final, self)
       check_and_clear_final_pos(final, piece.color)
       piece.move(final)
+    else
+      raise "Ilegal move, man"
     end
+
 
   end
 

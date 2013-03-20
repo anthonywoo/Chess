@@ -51,3 +51,6 @@ test_board.move_piece([4,4],[3,3])
 pawn = test_board.find_piece([3,3])
 puts "pawn y:#{pawn.y} x:#{pawn.x} color:#{pawn.color}, should be W"
 puts "#{test_board.black.include?(taken_pawn)} false = correct"
+
+puts "Testing correct turn"
+

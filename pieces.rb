@@ -93,6 +93,21 @@ class King < Piece
     return false
   end
 
+  def in_check?(board)
+    #king = find_king(color)
+    board.all_opposite_pieces(self.color).each do |piece|
+      begin
+        final = [self.y, self.x]
+        if piece.can_move?(final, board)
+          return true
+        end
+      rescue Exception => e
+        puts e
+      end
+    end
+    return false
+  end
+
 end
 
 class Queen < Piece
@@ -170,4 +185,30 @@ class Pawn < Piece
     end
   end
 
+  def pawn_blocked(finish, board)
+    #pawn = board.find_piece(start)
+    #return false unless pawn.class == Pawn
+    enemy = board.find_piece(finish);
+    return false if enemy.nil?
+    if (self.y-finish[0]).abs == 1 && self.x == finish[1]
+      return true
+    end
+    return false
+  end
+
+  def valid_pawn_attack(finish, board)
+   # pawn = board.find_piece(start)
+    enemy = board.find_piece(finish);
+   # return false unless pawn.class == Pawn
+    return false unless enemy != nil && enemy.color != self.color
+    if (self.y - finish[0]).abs == 1 &&
+       (self.x - finish[1]).abs == 1
+      return true
+    end
+      return false
+   end
+   def can_move?(end_location, board)
+     (valid_move?(end_location) && !pawn_blocked(end_location,board)) ||
+      valid_pawn_attack(end_location,board)
+   end
 end

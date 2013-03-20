@@ -38,6 +38,9 @@ class Game
         puts "Try again!"
       end
     end
+    if @board.king_in_check?(@turn)
+      puts "CHECK!"
+    end
     next_turn
     take_turn
   end
@@ -54,8 +57,7 @@ class Player
     puts "enter y1 x1 y2 x2"
     user_input = gets.chomp
     coords = user_input.split(" ")
-    exit if coords[0] == "q"
-      
+
     coords.map! {|str| str.to_i}
     @board.move_piece([coords[0],coords[1]],[coords[2],coords[3]])
   end
@@ -142,6 +144,7 @@ class Board
 
   def check_if_king_in_check(piece, start, final)
     piece.move(final)
+
     if king_in_check?(piece.color)
       piece.move(start)
       raise "Your King is in Check"
@@ -169,21 +172,25 @@ class Board
   end
 
   #private
-
   def king_in_check?(color)
     king = find_king(color)
-    all_opposite_pieces(color).each do |piece|
-      begin
-        final = [king.y, king.x]
-        if piece.can_move?(final, self)
-          return true
-        end
-      rescue Exception => e
-        puts e
-      end
-    end
-    return false
+    king.in_check?(self)
   end
+
+  # def king_in_check?(color)
+ #    king = find_king(color)
+ #    all_opposite_pieces(color).each do |piece|
+ #      begin
+ #        final = [king.y, king.x]
+ #        if piece.can_move?(final, self)
+ #          return true
+ #        end
+ #      rescue Exception => e
+ #        puts e
+ #      end
+ #    end
+ #    return false
+ #  end
 
   def all_opposite_pieces(color)
     if color == :B
@@ -201,31 +208,6 @@ class Board
       end
     end
   end
-
-
-  def pawn_blocked(start,finish)
-    pawn = find_piece(start)
-    return false unless pawn.class == Pawn
-    enemy = find_piece(finish);
-    return false if enemy.nil?
-    if (start[0]-finish[0]).abs == 1 && start[1] == finish[1]
-      return true
-    end
-    return false
-  end
-
-  def valid_pawn_attack(start,finish)
-    pawn = find_piece(start)
-    enemy = find_piece(finish);
-    return false unless pawn.class == Pawn
-    return false unless enemy != nil && enemy.color != pawn.color
-    if (start[0] - finish[0]).abs == 1 &&
-       (start[1] - finish[1]).abs == 1
-      return true
-    end
-      return false
-   end
-
 
   def build_all_black_pieces
     black = []

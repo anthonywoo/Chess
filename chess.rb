@@ -100,8 +100,7 @@ class Board
   #end   [y,x]
 
   def game_over?(color)
-    #binding.pry
-    return false unless king_in_check?(color)
+    return false unless king_in_check?(color) #am i currently in check?
     pieces = color == :B ? black : white
     all_coords = []
     (0..7).each do |i|
@@ -113,8 +112,8 @@ class Board
     pieces.each do |piece|
       all_coords.delete([piece.y, piece.x])
     end
-
-    pieces.each do |piece|
+    #binding.pry
+    pieces.each do |piece| #checkmate
       start = [piece.y, piece.x]
       all_coords.each do |final|
         if valid_pawn_attack(start,final) || piece.valid_move?(start,final)
@@ -166,7 +165,6 @@ class Board
   #private
 
   def king_in_check?(color)
-    #binding.pry
     king = find_king(color)
     all_opposite_pieces(color).each do |piece|
       begin
@@ -219,12 +217,10 @@ class Board
     return false unless enemy != nil && enemy.color != pawn.color
     if (start[0] - finish[0]).abs == 1 &&
        (start[1] - finish[1]).abs == 1
-
-       return true
-     end
-     return false
-
-  end
+      return true
+    end
+      return false
+   end
 
 
   def build_all_black_pieces
@@ -259,7 +255,6 @@ class Board
 
 
   def check_path(path)
-    p path
     return if path.nil?
     path.each do |pos|
       return false if find_piece(pos) #found obstacle in the way
@@ -279,15 +274,14 @@ class Board
     else #diag
       x_array = []
       y_array = []
-      for x in start[1]..final[1]
-        x_array << x
-        puts x
-      end
-      for y in start[0]..final[0]
-        y_array << y
-        puts y
-      end
-      #custom_range(start[0], final[0]).each {|y| y_array << y}
+      # for x in start[1]..final[1] ###doesn't work for reverse range
+#         x_array << x
+#       end
+#       for y in start[0]..final[0]
+#         y_array << y
+#       end
+      y_array = custom_range(start[0], final[0])
+      x_array = custom_range(start[1], final[1])
       #custom_range(start[1], final[1]).each {|x| x_array << x}
       y_array.each_with_index do |y, i|
         path << [y, x_array[i]]
@@ -306,7 +300,7 @@ class Board
     (a..b).each do |i|
       result << i
     end
-    result.reverse if final < start
+    result = result.reverse if final < start
     result
   end
 

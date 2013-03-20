@@ -1,5 +1,46 @@
 require './pieces.rb'
+require 'pry'
 class Game
+  def initialize
+    @board = Board.new
+    @player1 = Player.new(@board) #W
+    @player2 = Player.new(@board) #B
+  end
+  def start_game
+
+    @turn  = :W
+    take_turn
+  end
+  def next_turn
+    @turn = @turn == :W ? :B : :W
+  end
+
+  def take_turn
+    succuss = false
+    @board.display
+    puts @turn
+    if @board.game_over?(@turn)
+      puts "You Lose!"
+      exit
+    elsif @board.king_in_check?(@turn)
+      puts "Yo king be in check"
+    end
+    until succuss
+      begin
+        if @turn == :W
+          @player1.take_move
+        else
+          @player2.take_move
+        end
+        succuss = true
+      rescue Exception => e
+        puts e.message
+        puts "Try again!"
+      end
+    end
+    next_turn
+    take_turn
+  end
 
 end
 
@@ -7,6 +48,14 @@ class Player
   attr_accessor :board
   def initialize(board)
     @board = board
+  end
+
+  def take_move
+    puts "enter y1 x1 y2 x2"
+    user_input = gets.chomp
+    coords = user_input.split(" ")
+    coords.map! {|str| str.to_i}
+    @board.move_piece([coords[0],coords[1]],[coords[2],coords[3]])
   end
 end
 
@@ -32,11 +81,65 @@ class Board
       x,y = piece.x, piece.y
       display_array[y][x] = piece.getName
     end
-    display_array
+    pretty_print(display_array)
+  end
+
+  def pretty_print(chess_board)
+
+    puts "________________________________________________________________"
+    chess_board.each do |row|
+      print "\n"
+      row.each do |cell|
+        print" #{cell} "
+      end
+    end
+    puts "\n________________________________________________________________"
   end
 
   #start [y,x]
   #end   [y,x]
+
+  def game_over?(color)
+    #binding.pry
+    return false unless king_in_check?(color)
+    pieces = color == :B ? black : white
+    all_coords = []
+    (0..7).each do |i|
+      (0..7).each do |j|
+        all_coords << [i,j]
+      end
+    end
+    #binding.pry
+    pieces.each do |piece|
+      all_coords.delete([piece.y, piece.x])
+    end
+
+    pieces.each do |piece|
+      start = [piece.y, piece.x]
+      all_coords.each do |final|
+        if valid_pawn_attack(start,final) || piece.valid_move?(start,final)
+          taken_piece = check_and_clear_final_pos(final,color)
+          piece.move(final)
+          return false unless king_in_check?(color)
+          undo_taken_piece(taken_piece) if taken_piece
+        end
+      end
+    end
+
+    return true
+  end
+
+
+  def undo_taken_piece(piece)
+    if piece.color == :B
+      taken_piece = self.black_taken.pop
+      self.black << taken_piece
+    else
+      taken_piece = self.white_taken.pop
+      self.white << taken_piece
+    end
+  end
+
   def move_piece(start,final)
 
     on_board(start,final)
@@ -46,12 +149,12 @@ class Board
 
     if king_in_check?(piece.color)
       piece.move(start)
-      raise "You King is in Check"
+      raise "Your King is in Check"
     end
     piece.move(start)
 
     raise 'Pawn blocked' if pawn_blocked(start,final)
-    check_path(build_path(start,final))
+    raise "Blocked" unless check_path(build_path(start,final))
 
     if valid_pawn_attack(start,final) || piece.valid_move?(start,final)
       check_and_clear_final_pos(final, piece.color)
@@ -60,13 +163,21 @@ class Board
 
   end
 
-  private
+  #private
 
   def king_in_check?(color)
+    #binding.pry
     king = find_king(color)
     all_opposite_pieces(color).each do |piece|
-      if piece.valid_move([piece.y, piece.x], [king.y, king.x])
-        return true
+      begin
+        start = [piece.y, piece.x]
+        final = [king.y, king.x]
+        if piece.valid_move?(start, final) &&
+          check_path(build_path(start,final))
+          return true
+        end
+      rescue Exception => e
+        puts e
       end
     end
     return false
@@ -116,9 +227,6 @@ class Board
   end
 
 
-
-
-
   def build_all_black_pieces
     black = []
     black << Rook.new(:B,0,0)
@@ -151,10 +259,12 @@ class Board
 
 
   def check_path(path)
+    p path
     return if path.nil?
     path.each do |pos|
-      raise "Obstacle in the way" if find_piece(pos)
+      return false if find_piece(pos) #found obstacle in the way
     end
+    return true
   end
 
   def build_path(start,final)
@@ -169,8 +279,16 @@ class Board
     else #diag
       x_array = []
       y_array = []
-      custom_range(start[0], final[0]).each {|x| x_array << x}
-      custom_range(start[1], final[1]).each {|y| y_array << y}
+      for x in start[1]..final[1]
+        x_array << x
+        puts x
+      end
+      for y in start[0]..final[0]
+        y_array << y
+        puts y
+      end
+      #custom_range(start[0], final[0]).each {|y| y_array << y}
+      #custom_range(start[1], final[1]).each {|x| x_array << x}
       y_array.each_with_index do |y, i|
         path << [y, x_array[i]]
       end
@@ -188,15 +306,15 @@ class Board
     (a..b).each do |i|
       result << i
     end
+    result.reverse if final < start
     result
   end
 
   def check_and_clear_final_pos(final,color)
     piece = find_piece(final)
-    return true if piece.nil?
+    return nil if piece.nil?
     raise "Can't move on top of your own" if piece.color == color
     remove_from_board(piece)
-    true
   end
 
   def remove_from_board(piece)
@@ -225,9 +343,11 @@ class Board
 
   def find_piece(pos)
     (black+white).each do |piece|
-      x,y = piece.x, piece.y
-      if [y,x] == pos
-        return piece
+      unless piece.nil?
+        x,y = piece.x, piece.y
+        if [y,x] == pos
+          return piece
+        end
       end
     end
     nil

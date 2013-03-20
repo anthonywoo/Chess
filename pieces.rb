@@ -38,9 +38,10 @@ class King < Piece
   #end
   def valid_move?(start,finish)
     if (start[0] - finish[0]).abs < 2 &&  (start[1] - finish[1]).abs < 2
-      raise 'Invalid Move for king'
+      #raise 'Invalid Move for king'
+      return true
     end
-    return true
+    return false
   end
 end
 
@@ -51,7 +52,8 @@ class Queen < Piece
         (start[1] - finish[1]).abs == 0)
       return true
     end
-    raise 'invalid move for queen'
+    #raise 'invalid move for queen'
+    false
   end
 end
 
@@ -60,7 +62,8 @@ class Bishop < Piece
     if ((start[0] - finish[0]).abs == (start[1] - finish[1]).abs)
       return true
     end
-    raise 'Invalid move for #{self.class}'
+    #raise 'Invalid move for Bishop'
+    false
   end
 end
 
@@ -70,7 +73,8 @@ class Knight < Piece
       ((start[0] - finish[0]).abs == 2 && (start[1] - finish[1]).abs == 1)
       return true
     end
-    raise "Invalid move for #{self.class}"
+    #raise "Invalid move for Knight"
+    false
   end
 end
 
@@ -78,9 +82,9 @@ class Rook < Piece
   def valid_move?(start,finish)
     if (start[0] - finish[0]).abs == 0 || (start[1] - finish[1]).abs == 0
       return true
-    else
-      raise "Invalid move for #{self.class}"
     end
+    #raise "Invalid move for Rook"
+    false
   end
 end
 
@@ -92,13 +96,15 @@ class Pawn < Piece
       if (finish[0] - start[0]) == distance && (finish[1] == start[1])
         return true
       else
-        raise "Invalid move for #{self.class}"
+        #raise "Invalid move for Pawn"
+        false
       end
     elsif self.color == :W
       if (finish[0] - start[0]) == -1 * distance && (finish[1] == start[1])
         return true
       else
-        raise "Invalid move for #{self.class}"
+        #raise "Invalid move for Pawn"
+        false
       end
     end
   end

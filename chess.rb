@@ -1,5 +1,6 @@
 require './piece_header.rb'
 require 'colorize'
+#REV: Love the organization of your code btw
 class Game
   def initialize
     @board = Board.new
@@ -217,7 +218,8 @@ class Board
       black
     end
   end
-
+#REV: would it be easier to store a reference to the king so that you don't have to search for it each time?
+#REV: I'm going back and forth on that. Can't decide which is better
   def find_king(color)
     king = nil
     (black+white).each do |piece|
